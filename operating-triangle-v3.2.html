@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Operating Triangle · Bellweather · v3.2</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
+
+  <!--
+  ════════════════════════════════════════════════════
+  FONT SETUP — TT Norms Pro (Web License)
+  ════════════════════════════════════════════════════
+  Place your TT Norms Pro web font files in a folder
+  called "fonts" in the same directory as this file.
+
+  Expected filenames (rename yours if needed):
+    fonts/TT-Norms-Pro-Regular.woff2
+    fonts/TT-Norms-Pro-Regular.woff   (optional fallback)
+
+  Update the src: url() paths below if your filenames differ.
+  ════════════════════════════════════════════════════
+  -->
+
+  <style>
+    @font-face {
+      font-family: 'TT Norms Pro';
+      src: url('./fonts/TT-Norms-Pro-Regular.woff2') format('woff2'),
+           url('./fonts/TT-Norms-Pro-Regular.woff')  format('woff');
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    :root {
+      --limestone: #282828;
+      --cotton:    #F6F2EE;
+      --navy:      #263860;
+      --slate:     #9091A0;
+      --mahogany:  #54423E;
+      --teak:      #B7A9A3;
+      --concrete:  #D2D5D8;
+      --linen:     #E5E1D8;
+      --glass:     #EDF5F9;
+      --marble:    #FFFFFF;
+
+      --green:     #2E7D52;
+      --green-lt:  #EAF4EE;
+      --amber:     #8A6200;
+      --amber-lt:  #FDF6E3;
+      --red:       #A8271A;
+      --red-lt:    #FBECEA;
+
+      --sans: 'TT Norms Pro', 'Helvetica Neue', Arial, sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--cotton);
+      color: var(--limestone);
+      font-family: var(--sans);
+      font-weight: 400;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── HEADER ─────────────────────────────── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 36px;
+      height: 58px;
+      background: var(--limestone);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .brand { display: flex; align-items: center; gap: 16px; }
+    .brand-divider { width: 1px; height: 20px; background: rgba(246,242,238,0.18); }
+    .brand-name { font-size: 15px; color: var(--cotton); letter-spacing: 0.04em; line-height: 1; margin-bottom: 3px; }
+    .brand-sub  { font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--teak); line-height: 1; }
+
+    .nav { display: flex; gap: 2px; align-items: center; }
+    .nav-btn {
+      background: none; border: none;
+      font-family: var(--sans); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--teak); padding: 7px 16px; border-radius: 3px; cursor: pointer;
+      transition: color 0.15s, background 0.15s;
+    }
+    .nav-btn:hover { color: var(--cotton); }
+    .nav-btn.active { color: var(--cotton); background: rgba(246,242,238,0.10); }
+    .nav-btn.add { color: var(--cotton); background: var(--navy); margin-left: 10px; }
+    .nav-btn.add:hover { background: #1e2e50; }
+    .nav-btn.signout { color: var(--teak); border: 1px solid rgba(246,242,238,0.15); margin-left: 6px; }
+    .nav-btn.signout:hover { color: var(--cotton); border-color: rgba(246,242,238,0.35); }
+
+    /* ── LAYOUT ─────────────────────────────── */
+    .main { max-width: 860px; margin: 0 auto; padding: 44px 28px 96px; }
+    .hidden { display: none !important; }
+
+    /* ── PAGE HEADER ────────────────────────── */
+    .page-hdr {
+      display: flex; justify-content: space-between; align-items: flex-end;
+      margin-bottom: 32px; padding-bottom: 20px; border-bottom: 1px solid var(--linen);
+    }
+    .page-title { font-size: 28px; color: var(--navy); letter-spacing: -0.01em; line-height: 1; margin-bottom: 6px; }
+    .page-period { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--slate); }
+    .data-badge {
+      font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--slate);
+      background: var(--marble); border: 1px solid var(--linen); border-radius: 3px; padding: 5px 12px;
+    }
+
+    /* ── METRIC CARDS ───────────────────────── */
+    .tri-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 32px; }
+    .tri-top  { grid-column: 1 / -1; display: flex; justify-content: center; }
+
+    .metric-card {
+      background: var(--marble); border: 1px solid var(--linen);
+      border-radius: 7px; padding: 24px 26px;
+      width: 100%; max-width: 400px; position: relative;
+    }
+    .metric-card::before {
+      content: ''; position: absolute; left: 0; top: 14px; bottom: 14px;
+      width: 3px; border-radius: 0 2px 2px 0;
+    }
+    .metric-card.green::before { background: var(--green); }
+    .metric-card.amber::before { background: var(--amber); }
+    .metric-card.red::before   { background: var(--red); }
+
+    .card-eyebrow { font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--teak); margin-bottom: 14px; line-height: 1.4; }
+    .card-value   { font-size: 52px; line-height: 1; letter-spacing: -0.02em; margin-bottom: 6px; }
+    .card-value.green { color: var(--green); }
+    .card-value.amber { color: var(--amber); }
+    .card-value.red   { color: var(--red); }
+    .card-target { font-size: 11px; color: var(--teak); margin-bottom: 14px; letter-spacing: 0.02em; line-height: 1.5; }
+    .card-detail { font-size: 11px; color: var(--slate); margin-top: 10px; line-height: 1.7; letter-spacing: 0.01em; }
+
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase;
+      padding: 4px 10px; border-radius: 3px;
+    }
+    .status-pill::before { content: ''; width: 5px; height: 5px; border-radius: 50%; display: inline-block; }
+    .status-pill.green { background: var(--green-lt); color: var(--green); }
+    .status-pill.green::before { background: var(--green); }
+    .status-pill.amber { background: var(--amber-lt); color: var(--amber); }
+    .status-pill.amber::before { background: var(--amber); }
+    .status-pill.red   { background: var(--red-lt);   color: var(--red); }
+    .status-pill.red::before   { background: var(--red); }
+
+    /* ── LABOR SPLIT ────────────────────────── */
+    .labor-split { display: flex; border: 1px solid var(--linen); border-radius: 4px; overflow: hidden; margin-bottom: 12px; }
+    .labor-half  { flex: 1; padding: 13px 15px; }
+    .labor-half:first-child { border-right: 1px solid var(--linen); }
+    .labor-half-label  { font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--teak); margin-bottom: 5px; line-height: 1; }
+    .labor-half-val    { font-size: 36px; letter-spacing: -0.02em; line-height: 1; }
+    .labor-half-target { font-size: 10px; color: var(--teak); margin-top: 3px; letter-spacing: 0.02em; }
+
+    /* ── IDS ────────────────────────────────── */
+    .section-rule { border: none; border-top: 1px solid var(--linen); margin: 28px 0; }
+    .ids-section  { margin-bottom: 32px; }
+    .ids-label    { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--teak); margin-bottom: 10px; }
+    .ids-card     { border: 1px solid; border-radius: 5px; padding: 16px 20px; margin-bottom: 10px; }
+    .ids-card.amber { border-color: rgba(138,98,0,0.3);   background: var(--amber-lt); }
+    .ids-card.red   { border-color: rgba(168,39,26,0.3);  background: var(--red-lt); }
+    .ids-card-title { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 10px; }
+    .ids-card.amber .ids-card-title { color: var(--amber); }
+    .ids-card.red   .ids-card-title { color: var(--red); }
+    .ids-questions { list-style: none; }
+    .ids-questions li { font-size: 13px; color: var(--limestone); padding: 3px 0 3px 16px; position: relative; line-height: 1.5; letter-spacing: 0.01em; display:flex; align-items:baseline; gap:6px; }
+    .ids-questions li::before { content: '—'; position: absolute; left: 0; color: var(--teak); }
+    .ids-del-btn { background:none; border:none; color:var(--teak); cursor:pointer; font-size:14px; line-height:1; padding:0 2px; margin-left:auto; flex-shrink:0; }
+    .ids-del-btn:hover { color:var(--red); }
+    .ids-add-row { display:flex; gap:8px; margin-top:10px; align-items:center; }
+    .ids-add-input { flex:1; font-size:12px; padding:6px 10px; border:1px solid var(--concrete); border-radius:4px; background:var(--marble); color:var(--limestone); font-family:inherit; letter-spacing:0.01em; }
+    .ids-add-input:focus { outline:none; border-color:var(--navy); }
+    .ids-add-btn { font-size:11px; font-family:inherit; letter-spacing:0.08em; padding:6px 12px; background:transparent; border:1px solid var(--navy); color:var(--navy); border-radius:4px; cursor:pointer; white-space:nowrap; }
+    .ids-add-btn:hover { background:var(--navy); color:var(--marble); }
+
+    /* ── BULK UPLOAD ── */
+    .bulk-table-wrap { overflow-x:auto; margin-bottom:16px; }
+    .bulk-table { width:100%; border-collapse:collapse; font-size:12px; }
+    .bulk-table th { font-size:9px; letter-spacing:0.12em; text-transform:uppercase; color:var(--teak); font-weight:600; padding:8px 10px; border-bottom:1px solid var(--linen); text-align:left; white-space:nowrap; background:var(--cotton); }
+    .bulk-table td { padding:8px 6px; border-bottom:1px solid var(--linen); vertical-align:middle; }
+    .bulk-table tr:last-child td { border-bottom:none; }
+    .bulk-table tr.has-error td { background:var(--red-lt); }
+    .bulk-table tr.is-dupe td { background:var(--amber-lt); }
+    .bulk-fname { font-size:11px; color:var(--slate); max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .bulk-input { font-size:12px; padding:5px 7px; border:1px solid var(--concrete); border-radius:3px; background:var(--marble); color:var(--limestone); font-family:inherit; width:100%; box-sizing:border-box; }
+    .bulk-input.err { border-color:var(--red); }
+    .bulk-input-sm { width:72px; }
+    .bulk-input-year { width:90px; }
+    .bulk-input-med { width:70px; }
+    .bulk-input-num { width:110px; }
+    .bulk-select { font-size:12px; padding:5px 6px; border:1px solid var(--concrete); border-radius:3px; background:var(--marble); color:var(--limestone); font-family:inherit; }
+    .bulk-row-status { font-size:10px; white-space:nowrap; }
+    .bulk-row-status.loading { color:var(--slate); }
+    .bulk-row-status.ok { color:var(--green); }
+    .bulk-row-status.warn { color:var(--amber); }
+    .bulk-row-status.err { color:var(--red); }
+    .bulk-del { background:none; border:none; color:var(--teak); cursor:pointer; font-size:16px; padding:0 4px; }
+    .bulk-del:hover { color:var(--red); }
+    .bulk-actions { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-top:4px; }
+    .bulk-summary { font-size:12px; color:var(--slate); letter-spacing:0.02em; }
+    .all-green-note { background: var(--green-lt); border: 1px solid rgba(46,125,82,0.22); border-radius: 5px; padding: 16px 20px; font-size: 13px; color: var(--green); letter-spacing: 0.01em; }
+
+    /* ── UPLOAD ─────────────────────────────── */
+    .upload-wrap { max-width: 560px; }
+    .upload-intro { font-size: 14px; color: var(--slate); margin-bottom: 28px; line-height: 1.65; letter-spacing: 0.01em; }
+    .form-row  { display: flex; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+    .field     { flex: 1; min-width: 120px; }
+    .field-label { display: block; font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--slate); margin-bottom: 6px; }
+    .field-input, .field-select {
+      width: 100%; background: var(--marble); border: 1px solid var(--concrete); border-radius: 4px;
+      padding: 10px 12px; color: var(--limestone); font-family: var(--sans); font-size: 14px;
+      outline: none; transition: border-color 0.15s, box-shadow 0.15s; appearance: none;
+    }
+    .field-input:focus, .field-select:focus { border-color: var(--navy); box-shadow: 0 0 0 3px rgba(38,56,96,0.08); }
+
+    .dropzone {
+      border: 1px dashed var(--concrete); border-radius: 6px; padding: 42px 24px;
+      text-align: center; cursor: pointer; transition: all 0.15s; background: var(--marble);
+    }
+    .dropzone:hover, .dropzone.over { border-color: var(--navy); background: var(--glass); }
+    .dz-icon  { font-size: 22px; margin-bottom: 10px; opacity: 0.4; }
+    .dz-title { font-size: 14px; color: var(--limestone); margin-bottom: 4px; letter-spacing: 0.01em; }
+    .dz-sub   { font-size: 11px; color: var(--slate); letter-spacing: 0.04em; }
+
+    .status-msg { font-size: 12px; padding: 10px 14px; border-radius: 4px; margin-top: 10px; letter-spacing: 0.01em; }
+    .status-msg.loading { background: var(--glass);    color: var(--navy);   border: 1px solid var(--concrete); }
+    .status-msg.ok      { background: var(--green-lt); color: var(--green);  border: 1px solid rgba(46,125,82,0.22); }
+    .status-msg.warn    { background: var(--amber-lt); color: var(--amber);  border: 1px solid rgba(138,98,0,0.22); }
+    .status-msg.err     { background: var(--red-lt);   color: var(--red);    border: 1px solid rgba(168,39,26,0.22); }
+
+    .ext-panel { background: var(--marble); border: 1px solid var(--linen); border-radius: 7px; padding: 22px; margin-top: 14px; }
+    .ext-panel-title { font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--slate); margin-bottom: 16px; }
+    .ext-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .btn-primary {
+      display: block; width: 100%; margin-top: 18px; padding: 13px;
+      background: var(--navy); border: none; border-radius: 4px;
+      color: var(--cotton); font-family: var(--sans); font-size: 12px;
+      letter-spacing: 0.14em; text-transform: uppercase; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-primary:hover { background: #1e2e50; }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-secondary {
+      display: inline-flex; align-items: center; padding: 7px 14px;
+      background: transparent; border: 1px solid var(--concrete); border-radius: 4px;
+      color: var(--slate); font-family: var(--sans); font-size: 10px;
+      letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; transition: all 0.15s;
+    }
+    .btn-secondary:hover { border-color: var(--navy); color: var(--navy); }
+
+    /* ── HISTORY ────────────────────────────── */
+    .tbl-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--slate);
+      padding: 10px 16px; text-align: right; border-bottom: 1px solid var(--linen); white-space: nowrap;
+    }
+    thead th:first-child { text-align: left; }
+    tbody td { padding: 13px 16px; text-align: right; border-bottom: 1px solid var(--linen); font-size: 13px; color: var(--slate); letter-spacing: 0.01em; }
+    tbody td:first-child { text-align: left; font-size: 14px; color: var(--limestone); }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: rgba(246,242,238,0.5); }
+    .tc-green { color: var(--green) !important; }
+    .tc-amber { color: var(--amber) !important; }
+    .tc-red   { color: var(--red)   !important; }
+    .del-btn {
+      background: none; border: 1px solid transparent; color: var(--teak);
+      cursor: pointer; padding: 3px 10px; border-radius: 3px;
+      font-family: var(--sans); font-size: 11px; letter-spacing: 0.06em; transition: all 0.15s;
+    }
+    .del-btn:hover { color: var(--red); border-color: rgba(168,39,26,0.25); background: var(--red-lt); }
+
+    /* ── EMPTY STATE ────────────────────────── */
+    .empty { text-align: center; padding: 100px 20px; }
+    .empty-mark  { font-size: 36px; color: var(--teak); opacity: 0.35; margin-bottom: 20px; letter-spacing: 0.2em; }
+    .empty-title { font-size: 22px; color: var(--navy); letter-spacing: -0.01em; margin-bottom: 8px; }
+    .empty-sub   { font-size: 14px; color: var(--slate); margin-bottom: 28px; letter-spacing: 0.01em; }
+
+    /* ── AUTH OVERLAY ───────────────────────── */
+    .auth-overlay {
+      position: fixed; inset: 0; z-index: 999;
+      background: var(--limestone);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .auth-card {
+      background: var(--marble); border-radius: 10px;
+      padding: 48px 44px; max-width: 400px; width: 90%;
+      text-align: center;
+    }
+    .auth-brand {
+      font-size: 13px; letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--teak); margin-bottom: 6px;
+    }
+    .auth-title {
+      font-size: 22px; color: var(--navy); letter-spacing: -0.01em;
+      margin-bottom: 12px; line-height: 1.2;
+    }
+    .auth-sub {
+      font-size: 13px; color: var(--slate); line-height: 1.6;
+      letter-spacing: 0.01em; margin-bottom: 32px;
+    }
+    .auth-btn {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      width: 100%; padding: 13px 20px;
+      background: var(--navy); border: none; border-radius: 5px;
+      color: var(--cotton); font-family: var(--sans); font-size: 12px;
+      letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .auth-btn:hover { background: #1e2e50; }
+    .auth-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .auth-btn svg { flex-shrink: 0; }
+    .auth-error { margin-top: 14px; }
+
+    /* ── MIGRATION BANNER ───────────────────── */
+    .migrate-banner {
+      background: var(--glass); border: 1px solid var(--concrete);
+      border-radius: 6px; padding: 16px 20px;
+      margin-bottom: 28px;
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    }
+    .migrate-text { flex: 1; font-size: 13px; color: var(--limestone); line-height: 1.5; letter-spacing: 0.01em; }
+    .migrate-text strong { color: var(--navy); }
+    .migrate-btn {
+      padding: 8px 18px; background: var(--navy); border: none; border-radius: 4px;
+      color: var(--cotton); font-family: var(--sans); font-size: 11px;
+      letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer;
+      white-space: nowrap; transition: background 0.15s; flex-shrink: 0;
+    }
+    .migrate-btn:hover { background: #1e2e50; }
+    .migrate-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── LOADING SCREEN ─────────────────────── */
+    .sp-loading {
+      text-align: center; padding: 100px 20px;
+    }
+    .sp-loading-mark { font-size: 22px; color: var(--teak); opacity: 0.4; margin-bottom: 16px; letter-spacing: 0.3em; }
+    .sp-loading-text { font-size: 13px; color: var(--slate); letter-spacing: 0.06em; }
+
+    /* ── RESPONSIVE ─────────────────────────── */
+    @media (max-width: 640px) {
+      .header { padding: 0 18px; }
+      .main   { padding: 28px 18px 72px; }
+      .tri-grid { grid-template-columns: 1fr; }
+      .tri-top  { justify-content: stretch; }
+      .metric-card { max-width: 100%; }
+      .ext-grid { grid-template-columns: 1fr; }
+      .page-hdr { flex-direction: column; align-items: flex-start; gap: 10px; }
+      .migrate-banner { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- AUTH OVERLAY — shown when not signed in -->
+<div id="auth-overlay" class="auth-overlay">
+  <div class="auth-card">
+    <div class="auth-brand">Bellweather Design–Build</div>
+    <h1 class="auth-title">Operating Triangle</h1>
+    <p class="auth-sub">Sign in with your Bellweather Microsoft account to access the scorecard.</p>
+    <button class="auth-btn" id="auth-signin-btn" onclick="signIn()">
+      <svg width="18" height="18" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="9" height="9" fill="#F25022"/>
+        <rect x="11" y="1" width="9" height="9" fill="#7FBA00"/>
+        <rect x="1" y="11" width="9" height="9" fill="#00A4EF"/>
+        <rect x="11" y="11" width="9" height="9" fill="#FFB900"/>
+      </svg>
+      Sign in with Microsoft
+    </button>
+    <div id="auth-error" class="hidden status-msg err auth-error"></div>
+  </div>
+</div>
+
+<header class="header">
+  <div class="brand">
+    <svg width="20" height="18" viewBox="0 0 20 18" fill="none">
+      <polygon points="10,1 19,17 1,17" stroke="#F6F2EE" stroke-width="1.3" fill="none" stroke-linejoin="round"/>
+    </svg>
+    <div class="brand-divider"></div>
+    <div>
+      <div class="brand-name">Bellweather</div>
+      <div class="brand-sub">Operating Triangle &nbsp;·&nbsp; v3.2</div>
+    </div>
+  </div>
+  <nav class="nav">
+    <button class="nav-btn" id="nav-scorecard" onclick="show('scorecard')">Scorecard</button>
+    <button class="nav-btn" id="nav-history"   onclick="show('history')">History</button>
+    <button class="nav-btn add"                onclick="show('upload')">+ Add Month</button>
+    <button class="nav-btn signout" id="nav-signout" onclick="signOut()">Sign Out</button>
+  </nav>
+</header>
+
+<main class="main">
+
+  <!-- MIGRATION BANNER — shown when localStorage data is detected -->
+  <div id="migrate-banner" class="migrate-banner hidden">
+    <div class="migrate-text">
+      <strong id="migrate-count"></strong> — click <strong>Migrate to SharePoint</strong> to move it permanently.
+      Your data will be safe throughout this process.
+    </div>
+    <button class="migrate-btn" id="migrate-btn" onclick="migrateFromLocalStorage()">Migrate to SharePoint</button>
+  </div>
+  <div id="migrate-status" class="hidden status-msg" style="margin-bottom:20px;"></div>
+
+  <!-- SCORECARD -->
+  <div id="view-scorecard" class="hidden"></div>
+
+  <!-- UPLOAD -->
+  <div id="view-upload" class="hidden">
+    <div class="upload-wrap">
+      <div class="page-hdr" style="margin-bottom:22px">
+        <div><h1 class="page-title">Add Monthly Data</h1></div>
+      </div>
+      <p class="upload-intro">Drop one or more QuickBooks P&amp;L PDFs below. The tool will extract values from each automatically — review and fill in FTEs before saving.</p>
+      <div class="dropzone" id="dropzone" onclick="document.getElementById('file-inp').click()">
+        <div class="dz-icon">↑</div>
+        <div class="dz-title">Drop one or more P&amp;L PDFs here</div>
+        <div class="dz-sub">or click to browse &nbsp;·&nbsp; PDF only &nbsp;·&nbsp; multiple files supported</div>
+      </div>
+      <input type="file" id="file-inp" accept=".pdf" class="hidden" multiple>
+      <div id="bulk-status" class="hidden status-msg" style="margin-bottom:12px"></div>
+      <div id="bulk-panel" class="hidden">
+        <div class="bulk-table-wrap">
+          <table class="bulk-table">
+            <thead>
+              <tr>
+                <th>File</th>
+                <th>Month</th>
+                <th>Year</th>
+                <th>FTEs <span style="color:var(--red)">*</span></th>
+                <th>Revenue</th>
+                <th>Total COGS</th>
+                <th>Sub Labor (5120)</th>
+                <th>Payroll COGS (5220)</th>
+                <th>Net Ord. Income</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="bulk-tbody"></tbody>
+          </table>
+        </div>
+        <div class="bulk-actions">
+          <span id="bulk-summary" class="bulk-summary"></span>
+          <button class="btn-primary" id="bulk-save-btn" onclick="saveBulk()">Save All</button>
+        </div>
+        <div id="bulk-save-status" class="hidden status-msg" style="margin-top:10px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div id="view-history" class="hidden">
+    <div class="page-hdr">
+      <div><h1 class="page-title">Monthly History</h1></div>
+      <button id="hist-sort-btn" class="btn-secondary" onclick="histSortAsc=!histSortAsc;renderHistory(window._entries||[])">Sort: Newest First</button>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Month</th>
+            <th>Revenue</th>
+            <th>FTEs</th>
+            <th>Gross Margin</th>
+            <th>Trade %</th>
+            <th>Payroll %</th>
+            <th>Net Ord. Income</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="hist-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+  // ── SHAREPOINT CONFIG ──────────────────────────────────────────────────
+  const SP_CLIENT_ID  = '168fe264-e562-4265-9b06-f24ff2c86484';
+  const SP_TENANT_ID  = 'ff0e3f46-615a-4a22-8a80-4bb83d627785';
+  const SP_HOSTNAME   = 'bellweather.sharepoint.com';
+  const SP_SITE_PATH  = '/sites/BWCore';
+  const SP_LIST_NAME  = 'ScorecardData';
+  const SP_REDIRECT   = 'https://joey-bwc.github.io/bellweather-visionary-scorecard/';
+  const SP_SCOPES     = ['https://graph.microsoft.com/Sites.ReadWrite.All'];
+
+  const msalInstance = new msal.PublicClientApplication({
+    auth: {
+      clientId:    SP_CLIENT_ID,
+      authority:   `https://login.microsoftonline.com/${SP_TENANT_ID}`,
+      redirectUri: SP_REDIRECT,
+    },
+    cache: { cacheLocation: 'localStorage', storeAuthStateInCookie: false }
+  });
+
+  // ── AUTH FUNCTIONS ─────────────────────────────────────────────────────
+  async function checkAuth() {
+    try { await msalInstance.handleRedirectPromise(); } catch {}
+    return msalInstance.getAllAccounts().length > 0;
+  }
+
+  async function signIn() {
+    const btn = document.getElementById('auth-signin-btn');
+    const err = document.getElementById('auth-error');
+    btn.disabled = true;
+    btn.textContent = 'Signing in…';
+    err.classList.add('hidden');
+    try {
+      await msalInstance.loginPopup({ scopes: SP_SCOPES });
+      document.getElementById('auth-overlay').classList.add('hidden');
+      await init();
+    } catch (e) {
+      btn.disabled = false;
+      btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 21 21" fill="none"><rect x="1" y="1" width="9" height="9" fill="#F25022"/><rect x="11" y="1" width="9" height="9" fill="#7FBA00"/><rect x="1" y="11" width="9" height="9" fill="#00A4EF"/><rect x="11" y="11" width="9" height="9" fill="#FFB900"/></svg> Sign in with Microsoft`;
+      err.textContent = 'Sign-in failed. Please try again.';
+      err.classList.remove('hidden');
+    }
+  }
+
+  function signOut() {
+    if (confirm('Sign out of the scorecard tool?')) {
+      msalInstance.logoutPopup();
+    }
+  }
+
+  async function spGetToken() {
+    const accounts = msalInstance.getAllAccounts();
+    if (!accounts.length) throw new Error('Not authenticated');
+    try {
+      const r = await msalInstance.acquireTokenSilent({ scopes: SP_SCOPES, account: accounts[0] });
+      return r.accessToken;
+    } catch {
+      const r = await msalInstance.acquireTokenPopup({ scopes: SP_SCOPES });
+      return r.accessToken;
+    }
+  }
+
+  // ── SHAREPOINT DATA LAYER ──────────────────────────────────────────────
+  let _siteId    = null;
+  let _spItemMap = {}; // maps entry.id (YYYY-MM) → SharePoint item id
+
+  async function spGetSiteId() {
+    if (_siteId) return _siteId;
+    const token = await spGetToken();
+    const res = await fetch(
+      `https://graph.microsoft.com/v1.0/sites/${SP_HOSTNAME}:${SP_SITE_PATH}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (!res.ok) throw new Error('Could not reach SharePoint site');
+    const data = await res.json();
+    _siteId = data.id;
+    return _siteId;
+  }
+
+  async function load() {
+    try {
+      const token  = await spGetToken();
+      const siteId = await spGetSiteId();
+      const res = await fetch(
+        `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${SP_LIST_NAME}/items?$expand=fields&$top=500`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (!res.ok) return [];
+      const data = await res.json();
+      _spItemMap = {};
+      return (data.value || [])
+        .filter(item => item.fields && item.fields.Title)
+        .map(item => {
+          _spItemMap[item.fields.Title] = item.id;
+          return {
+            id:                item.fields.Title,
+            year:              Number(item.fields.Year)              || 0,
+            month:             Number(item.fields.Month)             || 0,
+            fte:               Number(item.fields.FTE)               || 0,
+            revenue:           Number(item.fields.Revenue)           || 0,
+            totalCogs:         Number(item.fields.TotalCogs)         || 0,
+            tradeCogs:         Number(item.fields.TradeCogs)         || 0,
+            payrollCogs:       Number(item.fields.PayrollCogs)       || 0,
+            netOrdinaryIncome: item.fields.NetOrdinaryIncome != null ? Number(item.fields.NetOrdinaryIncome) : null,
+            savedAt:           item.fields.Modified || new Date().toISOString(),
+          };
+        });
+    } catch (e) {
+      console.error('SP load error:', e);
+      return [];
+    }
+  }
+
+  async function spUpsertEntry(entry) {
+    const token  = await spGetToken();
+    const siteId = await spGetSiteId();
+    const fields = {
+      Title:              entry.id,
+      Year:               entry.year,
+      Month:              entry.month,
+      FTE:                entry.fte,
+      Revenue:            entry.revenue,
+      TotalCogs:          entry.totalCogs,
+      TradeCogs:          entry.tradeCogs,
+      PayrollCogs:        entry.payrollCogs,
+      NetOrdinaryIncome:  entry.netOrdinaryIncome,
+    };
+    const existingSpId = _spItemMap[entry.id];
+    if (existingSpId) {
+      const r = await fetch(
+        `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${SP_LIST_NAME}/items/${existingSpId}/fields`,
+        { method: 'PATCH', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(fields) }
+      );
+      return r.ok;
+    } else {
+      const r = await fetch(
+        `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${SP_LIST_NAME}/items`,
+        { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ fields }) }
+      );
+      if (r.ok) {
+        const created = await r.json();
+        _spItemMap[entry.id] = created.id;
+      }
+      return r.ok;
+    }
+  }
+
+  async function spDeleteItem(entryId) {
+    const token  = await spGetToken();
+    const siteId = await spGetSiteId();
+    const spId   = _spItemMap[entryId];
+    if (!spId) return false;
+    const r = await fetch(
+      `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${SP_LIST_NAME}/items/${spId}`,
+      { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (r.ok) delete _spItemMap[entryId];
+    return r.ok;
+  }
+
+  // persist() — upserts each entry in the array (used by saveBulk)
+  async function persist(entries) {
+    try {
+      for (const entry of entries) await spUpsertEntry(entry);
+      return true;
+    } catch (e) {
+      console.error('SP persist error:', e);
+      return false;
+    }
+  }
+
+  // ── MIGRATION FROM LOCALSTORAGE ────────────────────────────────────────
+  function checkForLocalStorageData() {
+    try {
+      const raw = localStorage.getItem('ot-entries');
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (!parsed || !parsed.length) return;
+      const banner = document.getElementById('migrate-banner');
+      document.getElementById('migrate-count').textContent =
+        `${parsed.length} month${parsed.length !== 1 ? 's' : ''} of data found in your browser`;
+      banner.classList.remove('hidden');
+    } catch {}
+  }
+
+  async function migrateFromLocalStorage() {
+    const btn = document.getElementById('migrate-btn');
+    const msg = document.getElementById('migrate-status');
+    btn.disabled = true;
+    btn.textContent = 'Migrating…';
+    msg.className = 'status-msg loading';
+    msg.textContent = 'Saving entries to SharePoint — please wait…';
+    msg.classList.remove('hidden');
+    try {
+      const raw = localStorage.getItem('ot-entries');
+      if (!raw) { document.getElementById('migrate-banner').classList.add('hidden'); return; }
+      const entries = JSON.parse(raw);
+      let count = 0;
+      for (const entry of entries) {
+        await spUpsertEntry(entry);
+        count++;
+        msg.textContent = `Migrating… ${count} of ${entries.length}`;
+      }
+      localStorage.removeItem('ot-entries');
+      document.getElementById('migrate-banner').classList.add('hidden');
+      msg.className = 'status-msg ok';
+      msg.textContent = `${count} entr${count !== 1 ? 'ies' : 'y'} migrated successfully. Your data is now stored in SharePoint.`;
+      setTimeout(async () => {
+        msg.classList.add('hidden');
+        const entries = await load();
+        show(entries.length ? 'scorecard' : 'upload');
+      }, 3000);
+    } catch (e) {
+      btn.disabled = false;
+      btn.textContent = 'Migrate to SharePoint';
+      msg.className = 'status-msg err';
+      msg.textContent = 'Migration failed — please try again. Your browser data has not been changed.';
+    }
+  }
+
+  // ── SCORECARD LOGIC (unchanged from v2.0) ─────────────────────────────
+  const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const MONTHS_LONG  = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  // FTE: green 3.3–4.0 | amber <3.3 (strain) or 4.1–4.4 (creep) | red ≥4.5
+  const ragFte     = v  => (v >= 3.3 && v <= 4.0) ? 'green' : (v < 3.3 || (v > 4.0 && v <= 4.4)) ? 'amber' : 'red';
+  const fteDir     = v  => v < 3.3 ? 'low' : v > 4.0 ? 'high' : 'ok';
+  // GM: green 30–38% | red <30% | amber >38%
+  const ragGM      = v  => (v >= 0.30 && v <= 0.38) ? 'green' : v < 0.30 ? 'red' : 'amber';
+  const gmDir      = v  => v < 0.30 ? 'low' : v > 0.38 ? 'high' : 'ok';
+  const ragPayroll = pp => pp <= 0.40 ? 'green' : pp <= 0.45 ? 'amber' : 'red';
+  const ragTrade   = tp => (tp >= 0.60 && tp <= 0.70) ? 'green' : (tp >= 0.55 && tp <= 0.75) ? 'amber' : 'red';
+  // NP%: green ≥10% | amber 8–9.9% | red <8%
+  const ragNP      = v  => v >= 0.10 ? 'green' : v >= 0.08 ? 'amber' : 'red';
+
+  function ttm(entries, endId) {
+    if (!entries.length) return null;
+    const sorted = [...entries].sort((a,b) => b.year !== a.year ? b.year-a.year : b.month-a.month);
+    let startIdx = 0;
+    if (endId) {
+      startIdx = sorted.findIndex(e => e.id === endId);
+      if (startIdx < 0) startIdx = 0;
+    }
+    const slice  = sorted.slice(startIdx, startIdx + 12);
+    const n      = slice.length;
+    const rev    = slice.reduce((s,e) => s+e.revenue, 0);
+    const cogs   = slice.reduce((s,e) => s+e.totalCogs, 0);
+    const trade  = slice.reduce((s,e) => s+e.tradeCogs, 0);
+    const pay    = slice.reduce((s,e) => s+e.payrollCogs, 0);
+    const avgFte = Math.round(slice.reduce((s,e) => s+e.fte, 0) / n);
+    const gm     = rev > 0 ? (rev-cogs)/rev : 0;
+    const rli    = rev > 0 ? avgFte/(rev/1e6) : 0;
+    const labor  = trade+pay;
+    const tp     = labor > 0 ? trade/labor : 0;
+    const pp     = labor > 0 ? pay/labor   : 0;
+    const oldest = slice[slice.length-1];
+    const newest = slice[0];
+    const period = n === 12
+      ? `TTM · ${MONTHS_SHORT[oldest.month-1]} ${oldest.year} – ${MONTHS_SHORT[newest.month-1]} ${newest.year}`
+      : `Partial TTM (${n}/12 months) · ${MONTHS_SHORT[oldest.month-1]} ${oldest.year} – ${MONTHS_SHORT[newest.month-1]} ${newest.year}`;
+    const r4dir = fteDir(rli); const r5dir = gmDir(gm);
+    // Trailing 3-month NP% — uses the 3 most recent months in the TTM window
+    const t3slice = slice.slice(0, 3);
+    const t3rev   = t3slice.reduce((s,e) => s + e.revenue, 0);
+    const t3noi   = t3slice.reduce((s,e) => s + (e.netOrdinaryIncome || 0), 0);
+    const np3     = t3rev > 0 ? t3noi / t3rev : 0;
+    const hasNP   = t3slice.length >= 3 && t3slice.every(e => e.netOrdinaryIncome !== null && e.netOrdinaryIncome !== undefined);
+    return { rev, cogs, trade, pay, fte: avgFte, n, gm, rli, tp, pp, period,
+             r4: ragFte(rli), r5: ragGM(gm), r6: ragPayroll(pp), r6t: ragTrade(tp),
+             r4dir, r5dir, np3, r2: ragNP(np3), hasNP, t3noi, t3rev };
+  }
+
+  const QS_DEFAULT = {
+    2: {
+      amber: [
+        'Is this a revenue timing issue, or are costs running ahead of plan?',
+        'Is margin slipping or is overhead creeping?',
+        'Are we paying later for speed now — rework, burnout, or deferred fixes?',
+        'Which side of the Operating Triangle is breaking first?',
+      ],
+      red: [
+        'Is monthly revenue the primary drag, or are COGS and overhead both off-budget?',
+        'Is gross margin trending down, or is overhead the driver?',
+        'Are warranty and rework costs leaking into net profit?',
+        'Have we added overhead roles without a corresponding revenue increase?',
+        'Is billing keeping pace with production, or is there an AR lag?',
+      ],
+    },
+    4: {
+      high: ['Where did headcount creep in without revenue?', 'Are roles solving problems — or avoiding them?', 'Is payroll COGS quietly rising?'],
+      low:  ['Are Project Managers carrying more revenue than our system was designed for? What is Revenue per PM right now?',
+             'Has labor shifted outside payroll? Has trade partner usage increased or has Labor Distribution changed significantly?',
+             'Are operational disciplines starting to slip? Are schedules being missed or are change orders increasing?',
+             'Are quality indicators changing? Is Warranty / Rework % trending upward or are punch lists growing?',
+             'Has leadership improvement work slowed down? Are Rocks slipping or are process improvements being postponed?'],
+    },
+    5: {
+      low:  ['Is this pricing, estimating, or execution?', 'Are change orders being missed or under-enforced?', 'Did we knowingly accept lower-margin work?'],
+      high: ['Are we under-resourced on delivery? Have we reduced labor or support roles recently?',
+             'Are we delaying or under-investing in quality? Are punch lists growing or are trades rushing work?',
+             'Has project mix changed? Are recent jobs less labor-intensive than our typical work?',
+             'Are we underestimating future costs? Are allowances, contingencies, or change orders being deferred?',
+             'Are we pricing above what the market can sustain? Has close rate dropped or have sales cycles lengthened?'],
+    },
+    6: {
+      any:  ['Are we solving volatility with payroll instead of systems?', 'Are subs underperforming or unavailable?', 'Is this a temporary shift or structural drift?'],
+    },
+  };
+
+  function getDefaultQS(key, dir) {
+    const qs = QS_DEFAULT[key];
+    if (!qs) return [];
+    return qs[dir] || qs['any'] || [];
+  }
+
+  function loadCustomQS() {
+    try { const r = localStorage.getItem('ot-custom-qs'); return r ? JSON.parse(r) : {2:[],4:[],5:[],6:[]}; }
+    catch { return {2:[],4:[],5:[],6:[]}; }
+  }
+  function saveCustomQS(data) {
+    try { localStorage.setItem('ot-custom-qs', JSON.stringify(data)); } catch {}
+  }
+  function allQS(key, dir) {
+    const custom = loadCustomQS();
+    return [...getDefaultQS(key, dir||'any'), ...(custom[key]||[])];
+  }
+  function addCustomQ(key, text) {
+    const data = loadCustomQS();
+    if (!data[key]) data[key] = [];
+    data[key].push(text.trim());
+    saveCustomQS(data);
+  }
+  function deleteCustomQ(key, idx) {
+    const data = loadCustomQS();
+    if (!data[key]) return;
+    data[key].splice(idx, 1);
+    saveCustomQS(data);
+    renderScorecard(window._entries || []);
+  }
+
+  const $M  = v => '$' + (v/1e6).toFixed(2) + 'M';
+  const $K  = v => (v < 0 ? '-$' : '$') + Math.abs(Math.round(v/1e3)).toLocaleString() + 'K';
+  const pct = v => (v*100).toFixed(1) + '%';
+  const $c  = v => '$' + v.toLocaleString('en-US', {maximumFractionDigits:0});
+  const label = r => r === 'green' ? 'On Track' : r === 'amber' ? 'Watch' : 'Off Track';
+  const lc    = c => c === 'green' ? 'var(--green)' : c === 'amber' ? 'var(--amber)' : 'var(--red)';
+
+  function addAndRefresh(key) {
+    const inp = document.getElementById('ids-inp-' + key);
+    if (!inp || !inp.value.trim()) return;
+    addCustomQ(key, inp.value);
+    inp.value = '';
+    renderScorecard(window._entries || []);
+  }
+
+  let activeTTMEnd = null;
+
+  function renderScorecard(entries, endId) {
+    window._entries = entries;
+    if (endId !== undefined) activeTTMEnd = endId;
+    const el = document.getElementById('view-scorecard');
+    if (!entries.length) {
+      el.innerHTML = `
+        <div class="empty">
+          <div class="empty-mark">△</div>
+          <div class="empty-title">No data yet</div>
+          <div class="empty-sub">Upload your first monthly P&amp;L to see the Operating Triangle.</div>
+          <button class="btn-primary" style="max-width:220px;margin:0 auto;" onclick="show('upload')">Add First Month</button>
+        </div>`;
+      return;
+    }
+
+    const sorted = [...entries].sort((a,b) => b.year!==a.year?b.year-a.year:b.month-a.month);
+    const dropdownOpts = sorted.map(e => {
+      const sel = (activeTTMEnd === e.id) ? ' selected' : (!activeTTMEnd && e === sorted[0]) ? ' selected' : '';
+      return `<option value="${e.id}"${sel}>${MONTHS_LONG[e.month-1]} ${e.year}</option>`;
+    }).join('');
+
+    const t = ttm(entries, activeTTMEnd);
+    const fullTTM = t.n >= 12;
+
+    const alerts = [
+      ...(t.hasNP ? [{ key:2, rag:t.r2, dir: t.r2 === 'green' ? 'ok' : t.r2, label:'Net Profit %' }] : []),
+      ...(fullTTM ? [{ key:4, rag:t.r4, dir:t.r4dir, label:'Revenue Leverage Index' }] : []),
+      { key:5, rag:t.r5, dir:t.r5dir, label:'Gross Margin %' },
+      { key:6, rag:t.r6, dir:'any',   label:'Labor Distribution' },
+    ].filter(a => a.rag !== 'green');
+
+    const dirLabel = { 2: { amber:'Watch', red:'Off Track' }, 4: { high:'Too High', low:'Too Low' }, 5: { high:'Above Range', low:'Below Floor' } };
+
+    const alertsHtml = alerts.length
+      ? `<div class="ids-section">
+           <div class="ids-label">IDS Discussion Items</div>
+           ${alerts.map(a => {
+             const dirTxt = dirLabel[a.key]?.[a.dir] ? ` — ${dirLabel[a.key][a.dir]}` : '';
+             const defaultCount = getDefaultQS(a.key, a.dir).length;
+             return `
+             <div class="ids-card ${a.rag}">
+               <div class="ids-card-title">${a.label}${dirTxt}</div>
+               <ul class="ids-questions" id="ids-list-${a.key}">
+                 ${allQS(a.key, a.dir).map((q,i) => {
+                   const isCustom = i >= defaultCount;
+                   const customIdx = i - defaultCount;
+                   return `<li>${q}${isCustom ? `<button class="ids-del-btn" onclick="deleteCustomQ(${a.key},${customIdx})" title="Remove">×</button>` : ''}</li>`;
+                 }).join('')}
+               </ul>
+               <div class="ids-add-row">
+                 <input type="text" class="ids-add-input" id="ids-inp-${a.key}" placeholder="Add a discussion item…" onkeydown="if(event.key==='Enter'){addAndRefresh(${a.key})}">
+                 <button class="ids-add-btn" onclick="addAndRefresh(${a.key})">+ Add</button>
+               </div>
+             </div>`;
+           }).join('')}
+         </div>`
+      : `<div class="all-green-note">All Operating Triangle metrics are on track — no discussion required.</div>`;
+
+    el.innerHTML = `
+      <div class="page-hdr">
+        <div>
+          <h1 class="page-title">Operating Triangle</h1>
+          <p class="page-period">${t.period}</p>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <label style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--teak);">TTM Ending</label>
+          <select class="field-select" style="width:auto;padding:6px 10px;font-size:12px;"
+            onchange="renderScorecard(window._entries, this.value)">
+            ${dropdownOpts}
+          </select>
+        </div>
+      </div>
+      <div class="tri-grid">
+        <div class="tri-top">
+          ${fullTTM ? `
+          <div class="metric-card ${t.r4}">
+            <div class="card-eyebrow">Revenue Leverage Index</div>
+            <div class="card-value ${t.r4}">${t.rli.toFixed(2)}</div>
+            <div class="card-target">FTE ÷ (TTM Revenue ÷ $1MM) &nbsp;·&nbsp; target 3.3 – 4.0</div>
+            <span class="status-pill ${t.r4}">${label(t.r4)}</span>
+            <div class="card-detail">${t.fte} FTE &nbsp;·&nbsp; ${$M(t.rev)} TTM revenue</div>
+          </div>` : `
+          <div class="metric-card" style="opacity:0.5;border-style:dashed;">
+            <div class="card-eyebrow">Revenue Leverage Index</div>
+            <div class="card-value" style="font-size:1.1rem;color:var(--slate);margin:12px 0;">Requires 12 months</div>
+            <div class="card-target">FTE ÷ (TTM Revenue ÷ $1MM) &nbsp;·&nbsp; target 3.3 – 4.0</div>
+            <div class="card-detail" style="margin-top:10px;">${t.n} of 12 months loaded</div>
+          </div>`}
+        </div>
+        <div class="metric-card ${t.r5}">
+          <div class="card-eyebrow">Gross Margin %</div>
+          <div class="card-value ${t.r5}">${pct(t.gm)}</div>
+          <div class="card-target">(Revenue – COGS) ÷ Revenue &nbsp;·&nbsp; range 30 – 38%</div>
+          <span class="status-pill ${t.r5}">${label(t.r5)}</span>
+          <div class="card-detail">Revenue ${$M(t.rev)} &nbsp;·&nbsp; COGS ${$M(t.cogs)}</div>
+        </div>
+        <div class="metric-card ${t.r6}">
+          <div class="card-eyebrow">Labor Distribution</div>
+          <div class="labor-split">
+            <div class="labor-half">
+              <div class="labor-half-label">Trade / Sub</div>
+              <div class="labor-half-val" style="color:${lc(t.r6t)}">${pct(t.tp)}</div>
+              <div class="labor-half-target">target 60 – 70%</div>
+            </div>
+            <div class="labor-half">
+              <div class="labor-half-label">Payroll</div>
+              <div class="labor-half-val" style="color:${lc(t.r6)}">${pct(t.pp)}</div>
+              <div class="labor-half-target">target 30 – 40%</div>
+            </div>
+          </div>
+          <span class="status-pill ${t.r6}">${label(t.r6)}</span>
+          <div class="card-detail">Labor COGS ${$K(t.trade+t.pay)} &nbsp;·&nbsp; Sub ${$K(t.trade)} &nbsp;·&nbsp; Payroll ${$K(t.pay)}</div>
+        </div>
+        ${t.hasNP ? `
+        <div class="metric-card ${t.r2}">
+          <div class="card-eyebrow">Net Profit % &nbsp;·&nbsp; Trailing 3 Months</div>
+          <div class="card-value ${t.r2}">${pct(t.np3)}</div>
+          <div class="card-target">Net Ord. Income ÷ Revenue &nbsp;·&nbsp; target ≥ 10%</div>
+          <span class="status-pill ${t.r2}">${label(t.r2)}</span>
+          <div class="card-detail">Net Ord. Income ${$K(t.t3noi)} &nbsp;·&nbsp; Revenue ${$K(t.t3rev)}</div>
+        </div>` : `
+        <div class="metric-card" style="opacity:0.5;border-style:dashed;">
+          <div class="card-eyebrow">Net Profit % &nbsp;·&nbsp; Trailing 3 Months</div>
+          <div class="card-value" style="font-size:1.1rem;color:var(--slate);margin:12px 0;">Requires 3 months</div>
+          <div class="card-target">Net Ord. Income ÷ Revenue &nbsp;·&nbsp; target ≥ 10%</div>
+          <div class="card-detail" style="margin-top:10px;">Enter Net Ordinary Income data to enable</div>
+        </div>`}
+      </div>
+      <hr class="section-rule">
+      ${alertsHtml}`;
+  }
+
+  let histSortAsc = false;
+
+  function renderHistory(entries) {
+    window._entries = entries;
+    const tbody = document.getElementById('hist-tbody');
+    const sortBtn = document.getElementById('hist-sort-btn');
+    if (sortBtn) sortBtn.textContent = histSortAsc ? 'Sort: Oldest First' : 'Sort: Newest First';
+    if (!entries.length) {
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:60px;color:var(--teak);font-size:13px;letter-spacing:0.04em">No entries yet</td></tr>`;
+      return;
+    }
+    const sorted = [...entries].sort((a,b) => {
+      const dir = histSortAsc ? 1 : -1;
+      return a.year !== b.year ? dir*(a.year-b.year) : dir*(a.month-b.month);
+    });
+    tbody.innerHTML = sorted.map(e => {
+      const labor = e.tradeCogs + e.payrollCogs;
+      const gm = e.revenue > 0 ? (e.revenue - e.totalCogs) / e.revenue : 0;
+      const tp = labor > 0 ? e.tradeCogs / labor : 0;
+      const pp = labor > 0 ? e.payrollCogs / labor : 0;
+      const npPct = e.revenue > 0 && e.netOrdinaryIncome !== null ? e.netOrdinaryIncome / e.revenue : null;
+      return `
+        <tr>
+          <td>${MONTHS_LONG[e.month-1]} ${e.year}</td>
+          <td>${$c(e.revenue)}</td>
+          <td>${e.fte}</td>
+          <td class="tc-${ragGM(gm)}">${pct(gm)}</td>
+          <td>${pct(tp)}</td>
+          <td class="tc-${ragPayroll(pp)}">${pct(pp)}</td>
+          <td>${npPct !== null ? `<span class="tc-${ragNP(npPct)}">${pct(npPct)}</span>` : '<span style="color:var(--teak)">—</span>'}</td>
+          <td><button class="del-btn" onclick="delEntry('${e.id}')">Remove</button></td>
+        </tr>`;
+    }).join('');
+  }
+
+  async function show(view) {
+    ['scorecard','upload','history'].forEach(v => {
+      document.getElementById(`view-${v}`).classList.add('hidden');
+      const b = document.getElementById(`nav-${v}`);
+      if (b) b.classList.remove('active');
+    });
+    document.getElementById(`view-${view}`).classList.remove('hidden');
+    const ab = document.getElementById(`nav-${view}`);
+    if (ab) ab.classList.add('active');
+
+    // Show loading state for scorecard and history while fetching
+    if (view === 'scorecard') {
+      document.getElementById('view-scorecard').innerHTML =
+        `<div class="sp-loading"><div class="sp-loading-mark">△</div><div class="sp-loading-text">Loading from SharePoint…</div></div>`;
+    }
+
+    const entries = await load();
+    if (view === 'scorecard') renderScorecard(entries);
+    if (view === 'history')   renderHistory(entries);
+  }
+
+  // ── PDF PARSING (unchanged from v2.0) ─────────────────────────────────
+  async function parsePdf(file) {
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+    let text = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const pg = await pdf.getPage(i);
+      const ct = await pg.getTextContent();
+      text += ct.items.map(x => x.str).join(' ') + '\n';
+    }
+    return text;
+  }
+
+  function extract(text, patterns) {
+    for (const p of patterns) {
+      const m = text.match(new RegExp(p, 'i'));
+      if (m) { const v = parseFloat(m[1].replace(/,/g,'')); if (!isNaN(v) && v > 0) return v; }
+    }
+    return null;
+  }
+
+  // extractSigned — finds label in text, then captures the first number
+  // (positive or negative) in the following snippet. Handles cases where
+  // PDF.js inserts a space between the minus sign and the digits.
+  function extractSigned(text, label) {
+    const idx = text.search(new RegExp(label, 'i'));
+    if (idx < 0) return null;
+    const snippet = text.slice(idx + label.length, idx + label.length + 80);
+    const m = snippet.match(/(-\s*[\d,]+\.\d{2}|[\d,]+\.\d{2})/);
+    if (!m) return null;
+    const v = parseFloat(m[1].replace(/[\s,]/g, ''));
+    return isNaN(v) ? null : v;
+  }
+
+  function parseFinancials(text) {
+    return {
+      revenue:            extract(text,       ['Total Income\\s+([\\d,]+\\.\\d{2})', 'Total Income[^\\d]{0,10}([\\d,]+\\.\\d{2})']),
+      totalCogs:          extract(text,       ['Total COGS\\s+([\\d,]+\\.\\d{2})', 'Total COGS[^\\d]{0,10}([\\d,]+\\.\\d{2})']),
+      tradeCogs:          extract(text,       ['Total 5120[^\\d]{0,30}([\\d,]+\\.\\d{2})', 'Subcontractor Labor\\s+([\\d,]+\\.\\d{2})']),
+      payrollCogs:        extract(text,       ['Total 5220[^\\d]{0,30}([\\d,]+\\.\\d{2})']),
+      netOrdinaryIncome:  extractSigned(text, 'Net Ordinary Income'),
+    };
+  }
+
+  // ── BULK UPLOAD (modified for SharePoint) ─────────────────────────────
+  let bulkRows = [];
+
+  const dz = document.getElementById('dropzone');
+  const fi = document.getElementById('file-inp');
+  dz.addEventListener('dragover',  e => { e.preventDefault(); dz.classList.add('over'); });
+  dz.addEventListener('dragleave', ()  => dz.classList.remove('over'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('over');
+    const files = [...e.dataTransfer.files].filter(f => f.type === 'application/pdf');
+    if (files.length) handleFiles(files);
+  });
+  fi.addEventListener('change', e => {
+    const files = [...e.target.files].filter(f => f.type === 'application/pdf');
+    if (files.length) handleFiles(files);
+    fi.value = '';
+  });
+
+  function detectMonthYear(text) {
+    const sample = text.slice(0, 800);
+    const months = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+    for (let mi = 0; mi < months.length; mi++) {
+      const re = new RegExp(months[mi] + '[^\\d]{0,6}(\\d{4})', 'i');
+      const m = sample.match(re);
+      if (m) return { month: mi + 1, year: parseInt(m[1]) };
+    }
+    const m2 = sample.match(/(\d{1,2})\/\d{1,2}\/(\d{4})/);
+    if (m2) return { month: parseInt(m2[1]), year: parseInt(m2[2]) };
+    return null;
+  }
+
+  function bulkRowId(i) { return 'br-' + i; }
+
+  function renderBulkTable() {
+    const tbody = document.getElementById('bulk-tbody');
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    tbody.innerHTML = bulkRows.map((row, i) => {
+      const dupeClass = row.dupe ? 'is-dupe' : row.parseErr ? 'has-error' : '';
+      const statusTxt = row.saved ? '<span class="bulk-row-status ok">✓ Saved</span>'
+        : row.dupe ? '<span class="bulk-row-status warn">⚠ Will overwrite</span>'
+        : row.parseErr ? '<span class="bulk-row-status warn">Check values</span>'
+        : row.processing ? '<span class="bulk-row-status loading">Reading…</span>'
+        : '<span class="bulk-row-status ok">Ready</span>';
+      return `<tr id="${bulkRowId(i)}" class="${dupeClass}">
+        <td><div class="bulk-fname" title="${row.file.name}">${row.file.name}</div></td>
+        <td><select class="bulk-select" onchange="bulkRows[${i}].month=parseInt(this.value);updateBulkSummary()">
+          ${months.map((m,mi) => `<option value="${mi+1}"${row.month===mi+1?' selected':''}>${m}</option>`).join('')}
+        </select></td>
+        <td><input class="bulk-input bulk-input-year" type="number" value="${row.year}" min="2018" max="2035"
+          onchange="bulkRows[${i}].year=parseInt(this.value)||${row.year};updateBulkSummary()"></td>
+        <td><input class="bulk-input bulk-input-sm${!row.fte?' err':''}" type="number" value="${row.fte||''}" min="1" max="200" placeholder="—"
+          oninput="bulkRows[${i}].fte=parseInt(this.value)||null;updateBulkSummary()"></td>
+        <td><input class="bulk-input bulk-input-num" type="number" step="0.01" value="${row.revenue||''}" placeholder="0.00"
+          oninput="bulkRows[${i}].revenue=parseFloat(this.value)||null"></td>
+        <td><input class="bulk-input bulk-input-num" type="number" step="0.01" value="${row.totalCogs||''}" placeholder="0.00"
+          oninput="bulkRows[${i}].totalCogs=parseFloat(this.value)||null"></td>
+        <td><input class="bulk-input bulk-input-num" type="number" step="0.01" value="${row.tradeCogs||''}" placeholder="0.00"
+          oninput="bulkRows[${i}].tradeCogs=parseFloat(this.value)||null"></td>
+        <td><input class="bulk-input bulk-input-num" type="number" step="0.01" value="${row.payrollCogs||''}" placeholder="0.00"
+          oninput="bulkRows[${i}].payrollCogs=parseFloat(this.value)||null"></td>
+        <td><input class="bulk-input bulk-input-num" type="number" step="0.01" value="${row.netOrdinaryIncome||''}" placeholder="0.00"
+          oninput="bulkRows[${i}].netOrdinaryIncome=parseFloat(this.value)||null"></td>
+        <td>${statusTxt} <button class="bulk-del" onclick="removeBulkRow(${i})" title="Remove">×</button></td>
+      </tr>`;
+    }).join('');
+    updateBulkSummary();
+  }
+
+  function updateBulkSummary() {
+    const missingFte = bulkRows.filter(r => !r.fte && !r.saved).length;
+    const total = bulkRows.filter(r => !r.saved).length;
+    const el = document.getElementById('bulk-summary');
+    if (!el) return;
+    if (missingFte) {
+      el.textContent = `${missingFte} row${missingFte!==1?'s':''} still need FTE count`;
+      el.style.color = 'var(--amber)';
+    } else if (total) {
+      el.textContent = `${total} entr${total!==1?'ies':'y'} ready to save`;
+      el.style.color = 'var(--green)';
+    } else {
+      el.textContent = '';
+    }
+  }
+
+  function removeBulkRow(i) {
+    bulkRows.splice(i, 1);
+    if (!bulkRows.length) {
+      document.getElementById('bulk-panel').classList.add('hidden');
+    } else {
+      renderBulkTable();
+    }
+  }
+
+  async function handleFiles(files) {
+    const st = document.getElementById('bulk-status');
+    st.className = 'status-msg loading'; st.classList.remove('hidden');
+    st.textContent = `Reading ${files.length} PDF${files.length!==1?'s':''}…`;
+
+    const existingEntries = await load();
+    const existingIds = new Set(existingEntries.map(e => e.id));
+
+    const newRows = files.map(f => ({
+      file: f, month: new Date().getMonth()+1, year: new Date().getFullYear(),
+      fte: null, revenue: null, totalCogs: null, tradeCogs: null, payrollCogs: null,
+      netOrdinaryIncome: null,
+      processing: true, parseErr: false, dupe: false, saved: false
+    }));
+    bulkRows = [...bulkRows.filter(r => !r.saved), ...newRows];
+
+    document.getElementById('bulk-panel').classList.remove('hidden');
+    renderBulkTable();
+
+    for (let i = bulkRows.length - files.length; i < bulkRows.length; i++) {
+      const row = bulkRows[i];
+      try {
+        const text = await parsePdf(row.file);
+        const vals = parseFinancials(text);
+        const detected = detectMonthYear(text);
+        row.revenue           = vals.revenue           || null;
+        row.totalCogs         = vals.totalCogs         || null;
+        row.tradeCogs         = vals.tradeCogs         || null;
+        row.payrollCogs       = vals.payrollCogs       || null;
+        row.netOrdinaryIncome = vals.netOrdinaryIncome || null;
+        if (detected) { row.month = detected.month; row.year = detected.year; }
+        row.parseErr = !vals.revenue || !vals.totalCogs || !vals.tradeCogs || !vals.payrollCogs;
+        const id = `${row.year}-${String(row.month).padStart(2,'0')}`;
+        row.dupe = existingIds.has(id);
+      } catch {
+        row.parseErr = true;
+      }
+      row.processing = false;
+      renderBulkTable();
+    }
+
+    const parseErrors = bulkRows.filter(r => r.parseErr).length;
+    st.className = parseErrors ? 'status-msg warn' : 'status-msg ok';
+    st.textContent = parseErrors
+      ? `${files.length} PDF${files.length!==1?'s':''} read — ${parseErrors} may need manual values. Fill in FTEs, then click Save All.`
+      : `${files.length} PDF${files.length!==1?'s':''} read successfully. Fill in FTEs, then click Save All.`;
+  }
+
+  async function saveBulk() {
+    const btn = document.getElementById('bulk-save-btn');
+    const ss  = document.getElementById('bulk-save-status');
+    const missingFte = bulkRows.filter(r => !r.saved && !r.fte);
+    if (missingFte.length) {
+      ss.className = 'status-msg warn'; ss.classList.remove('hidden');
+      ss.textContent = `Please enter FTEs for all rows before saving.`;
+      return;
+    }
+    btn.disabled = true; btn.textContent = 'Saving…';
+
+    // Load first to populate _spItemMap for upsert logic
+    await load();
+
+    let saved = 0;
+    let ok = true;
+    for (const row of bulkRows) {
+      if (row.saved) continue;
+      if (!row.revenue || !row.totalCogs || !row.tradeCogs || !row.payrollCogs || !row.fte) continue;
+      const id = `${row.year}-${String(row.month).padStart(2,'0')}`;
+      const entry = { id, year:row.year, month:row.month, fte:row.fte,
+        revenue:row.revenue, totalCogs:row.totalCogs, tradeCogs:row.tradeCogs,
+        payrollCogs:row.payrollCogs, netOrdinaryIncome:row.netOrdinaryIncome||0,
+        savedAt: new Date().toISOString() };
+      const result = await spUpsertEntry(entry);
+      if (result) { row.saved = true; saved++; } else { ok = false; }
+    }
+
+    btn.disabled = false; btn.textContent = 'Save All';
+    ss.classList.remove('hidden');
+    if (ok) {
+      renderBulkTable();
+      ss.className = 'status-msg ok';
+      ss.textContent = `${saved} entr${saved!==1?'ies':'y'} saved to SharePoint.`;
+      const unsaved = bulkRows.filter(r => !r.saved).length;
+      if (!unsaved) setTimeout(() => show('scorecard'), 1000);
+    } else {
+      ss.className = 'status-msg err';
+      ss.textContent = 'One or more entries failed to save — please try again.';
+    }
+  }
+
+  async function delEntry(id) {
+    if (!confirm('Remove this entry?')) return;
+    // Ensure _spItemMap is populated before deleting
+    if (!_spItemMap[id]) await load();
+    const ok = await spDeleteItem(id);
+    if (ok) {
+      const entries = (window._entries || []).filter(e => e.id !== id);
+      window._entries = entries;
+      renderHistory(entries);
+    } else {
+      alert('Could not remove entry — please try again.');
+    }
+  }
+
+  // ── INIT ───────────────────────────────────────────────────────────────
+  async function init() {
+    const isAuth = await checkAuth();
+    if (!isAuth) {
+      document.getElementById('auth-overlay').classList.remove('hidden');
+      return;
+    }
+    document.getElementById('auth-overlay').classList.add('hidden');
+    checkForLocalStorageData();
+    const entries = await load();
+    show(entries.length ? 'scorecard' : 'upload');
+  }
+
+  init();
+</script>
+</body>
+</html>
